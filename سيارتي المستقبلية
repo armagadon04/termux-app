@@ -1,0 +1,115 @@
+import pygame
+import random
+from pygame.locals import *
+
+# تهيئة Pygame
+pygame.init()
+
+# إعدادات الشاشة
+WIDTH = 360
+HEIGHT = 640
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("سيارة السرعة")
+
+# الألوان
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (30, 144, 255)
+GREEN = (0, 200, 0)
+
+# تعريف السيارة
+class Car(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((40, 60))
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect(center=(WIDTH//2, HEIGHT-100))
+        self.speed = 8
+
+    def update(self, direction=None):  # <-- التصحيح هنا
+        if direction == "left" and self.rect.left > 10:
+            self.rect.x -= self.speed
+        elif direction == "right" and self.rect.right < WIDTH-10:
+            self.rect.x += self.speed
+
+# تعريف العوائق
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(50, WIDTH-100)
+        self.rect.y = random.randint(-1000, -100)
+        self.speed = 4
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > HEIGHT:
+            self.kill()
+            new_obs = Obstacle()
+            all_sprites.add(new_obs)
+            obstacles.add(new_obs)
+
+# إنشاء العناصر
+all_sprites = pygame.sprite.Group()
+obstacles = pygame.sprite.Group()
+
+car = Car()
+all_sprites.add(car)
+
+for _ in range(3):
+    obs = Obstacle()
+    all_sprites.add(obs)
+    obstacles.add(obs)
+
+# أزرار التحكم
+button_left = pygame.Rect(20, HEIGHT-120, 80, 80)
+button_right = pygame.Rect(WIDTH-100, HEIGHT-120, 80, 80)
+
+# دورة اللعبة
+clock = pygame.time.Clock()
+score = 0
+font = pygame.font.Font(None, 40)
+running = True
+
+while running:
+    screen.fill(WHITE)
+    direction = None  # <-- تعريف المتغير هنا
+    
+    # معالجة الأحداث
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            running = False
+        if event.type == MOUSEBUTTONDOWN:
+            if button_left.collidepoint(event.pos):
+                direction = "left"
+            elif button_right.collidepoint(event.pos):
+                direction = "right"
+    
+    # تحديث اللعبة
+    car.update(direction)  # <-- تمرير الوسيط بشكل صحيح
+    all_sprites.update()
+    
+    # التصادمات
+    if pygame.sprite.spritecollide(car, obstacles, True):
+        screen.fill(RED)
+        pygame.display.update()
+        pygame.time.delay(500)
+        running = False
+    
+    # الرسم
+    all_sprites.draw(screen)
+    pygame.draw.rect(screen, GREEN, button_left)
+    pygame.draw.rect(screen, GREEN, button_right)
+    
+    # النقاط
+    score += 1
+    text = font.render(f"النقاط: {score//10}", True, BLACK)
+    screen.blit(text, (10, 10))
+    
+    pygame.display.flip()
+    clock.tick(30)
+
+pygame.quit()
